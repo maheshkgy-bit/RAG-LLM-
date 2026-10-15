@@ -350,11 +350,3 @@ Final Answer
 
 RAG retrieves relevant information from external data, supplies it to an LLM as context, and uses the LLM to generate an answer.
 
-## Save it to your GitHub repository
-
-1. Create a file named `rag-notes.md`.
-2. Copy the notes above into that file.
-3. Commit and push it to your GitHub repository.
-4. If you are using GitHub Pages, link to the notes from your documentation homepage or navigation.
-
-For a basic GitHub Pages site, Markdown can be rendered by Jekyll. If you already use a Jekyll theme, its existing layout and navigation can be used to display the notes.
