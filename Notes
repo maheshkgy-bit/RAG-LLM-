@@ -1,3 +1,5 @@
+I’ve converted your RAG notes into a GitHub Pages–friendly Markdown document. You can save it as `rag-notes.md` in your Git repository. It uses simple Markdown headings, lists, tables, and code-friendly formatting, so it will work well in GitHub and GitHub Pages.
+
 # RAG — Retrieval-Augmented Generation
 
 ## 1. What Is RAG?
@@ -68,7 +70,7 @@ The actual text extracted from the source.
 
 Example:
 
-```text
+```
 PostgreSQL uses Write-Ahead Logging (WAL)
 to support crash recovery and data durability.
 ```
@@ -79,7 +81,7 @@ Additional information about the content.
 
 Example:
 
-```text
+```
 Source: PostgreSQL_Notes.pdf
 Page: 12
 ```
@@ -93,3 +95,334 @@ A large document can be divided into smaller pieces called **chunks**.
 ### Why Do We Need Chunking?
 
 - Every question does not require the complete document.
+- Smaller chunks help retrieve relevant information.
+- Very small chunks may lose important context.
+- Very large chunks may contain unnecessary information.
+- Chunking helps manage the amount of information sent to the LLM.
+
+### Chunk Size
+
+Chunk size determines how much text is included in each chunk. Depending on the splitter, it may be measured in characters or tokens.
+
+The appropriate chunk size depends on the document type, question complexity, and retrieval requirements.
+
+### Chunk Overlap
+
+Chunk overlap is the portion of text repeated between neighbouring chunks to preserve context across chunk boundaries.
+
+Example: If the chunk size is 100 words and the overlap is 10 words:
+
+```
+Chunk 1: Words 1-100
+Chunk 2: Words 91-190
+Chunk 3: Words 181-280
+```
+
+The last 10 words of one chunk are repeated in the next chunk.
+
+**Important:** Chunk overlap does not necessarily mean repeating lines from PDF pages. It means repeating a specified amount of text between consecutive chunks.
+
+### Text Splitter
+
+A text splitter divides large text into manageable chunks.
+
+One commonly used LangChain splitter is `RecursiveCharacterTextSplitter`.
+
+Different splitters use different strategies, such as character limits, token limits, paragraphs, or semantic boundaries.
+
+## 5. Embeddings and Embedding Models
+
+An **embedding** is a numerical representation of data that captures aspects of its meaning.
+
+An **embedding model** converts text into a numerical vector.
+
+Example:
+
+```
+Text:
+"Learn PostgreSQL"
+
+        |
+        v
+
+Embedding Model
+
+        |
+        v
+
+Vector:
+[0.12, -0.45, 0.83, ...]
+```
+
+The numbers above are illustrative.
+
+### Important Points
+
+- Embedding models convert text into numerical vectors.
+- Text with similar meanings often has vectors that are close together in the embedding space.
+- Different sentences can express similar meanings even when they use different words.
+- An embedding model is different from a chat model.
+- Embeddings help find relevant information; they do not generate the final answer.
+
+### Example
+
+These questions have similar meanings:
+
+- How does PostgreSQL recover after a crash?
+- Explain PostgreSQL crash recovery.
+
+Semantic search can retrieve relevant information for both questions, even if the wording differs.
+
+**Important:** Embeddings are not simply translations into binary 0s and 1s. They are vectors containing numerical values, often floating-point numbers.
+
+## 6. Semantic Search
+
+**Semantic search finds information based on meaning rather than relying only on exact keyword matches.**
+
+Traditional keyword search looks for matching terms. Semantic search uses embeddings to find content with similar meanings.
+
+### How Semantic Search Works
+
+1. Convert document chunks into embeddings.
+2. Store the embeddings in a vector store.
+3. Convert the user's question into an embedding.
+4. Compare the question vector with stored vectors.
+5. Retrieve the most relevant chunks.
+
+Similarity can be measured using methods such as cosine similarity or distance metrics, depending on the implementation.
+
+**Important:** Modern search engines can use both keyword-based and semantic techniques. Semantic search is also different from the attention mechanism used in Transformer models.
+
+## 7. Vector Store and Vector Database
+
+A **vector store** stores vector embeddings and supports similarity searches.
+
+A vector database is a database system designed to store vectors and retrieve similar vectors efficiently.
+
+### Examples
+
+- **Chroma:** A vector database commonly used in RAG applications.
+- **FAISS:** A library for efficient similarity search and clustering. It is not a full database by itself.
+- **pgvector:** A PostgreSQL extension that supports vector storage and similarity search.
+
+### What Can a Vector Store Contain?
+
+Depending on the implementation, a vector store can store:
+
+- Embeddings
+- Associated text or document chunks
+- Metadata
+
+### Important Conclusions
+
+- Generating embeddings and storing embeddings are different activities.
+- Vector stores support similarity searching.
+- Vector stores help search large collections of embeddings.
+- A vector store is not an LLM.
+- Storing and retrieving information is different from generating an answer.
+
+## 8. Retriever
+
+A **retriever** finds and returns relevant document chunks based on the user's question.
+
+Example question:
+
+```
+What is WAL archiving in PostgreSQL?
+```
+
+The retriever may return chunks describing:
+
+- What WAL means.
+- How WAL archiving works.
+- How archived WAL files support point-in-time recovery.
+
+The retriever does not normally generate the final answer. It provides relevant information to the next stage of the RAG pipeline.
+
+### Top-K Retrieval
+
+Top-K determines how many matching results the retriever requests.
+
+Example:
+
+```
+k = 3
+```
+
+The retriever requests three relevant chunks.
+
+However, the retrieved chunks are not guaranteed to be useful. Retrieval quality depends on the data, search method, and configuration.
+
+### Metadata Filtering
+
+Metadata filtering restricts search results based on properties such as:
+
+- Source document
+- Page number
+- Date
+- Document category
+
+## 9. Prompt Augmentation and Generation
+
+This is the stage where the retrieved information is combined with the user's question and sent to the LLM.
+
+### Example
+
+**Retrieved Context:**
+
+PostgreSQL uses Write-Ahead Logging (WAL) to record changes before the corresponding data pages are written to disk. WAL supports crash recovery and can be archived for point-in-time recovery.
+
+**User Question:**
+
+What is the purpose of WAL in PostgreSQL?
+
+**Augmented Prompt:**
+
+```
+Use the following context to answer the question.
+
+Context:
+PostgreSQL uses WAL to record changes before
+the corresponding data pages are written to disk.
+WAL supports crash recovery and point-in-time recovery.
+
+Question:
+What is the purpose of WAL in PostgreSQL?
+
+Provide an answer based on the supplied context.
+```
+
+**Generated Answer:**
+
+WAL records database changes before the corresponding data pages are written to disk. It helps PostgreSQL recover after a crash and supports point-in-time recovery when WAL files are archived.
+
+### Important Terms
+
+- **Retrieval:** Finding relevant information.
+- **Augmentation:** Adding retrieved information to the prompt.
+- **Generation:** Using the LLM to generate the answer.
+
+## 10. Does RAG Train the LLM?
+
+No. Standard RAG does not update the LLM's parameters when documents are added.
+
+Instead, it provides relevant external information to the LLM at inference time.
+
+When new documents are added, the typical process is:
+
+1. Load the new documents.
+2. Split them into chunks.
+3. Generate embeddings.
+4. Store the embeddings and associated information.
+5. Retrieve relevant information when a question is asked.
+
+The LLM uses the retrieved context to formulate its answer.
+
+### Benefits
+
+- Documents can be updated without retraining the LLM.
+- Private or domain-specific information can be made available to the model.
+- Relevant information can be retrieved for each question.
+
+### Costs to Consider
+
+RAG still has costs associated with embedding generation, vector storage, retrieval, and LLM inference.
+
+## 11. Additional Important Concepts
+
+| Concept            | Purpose                                              |
+| ------------------ | ---------------------------------------------------- |
+| Indexing           | Prepares documents for efficient retrieval.          |
+| Similarity Metric  | Measures similarity or distance between vectors.     |
+| Top-K              | Controls how many results are retrieved.             |
+| Metadata Filtering | Filters results using document properties.           |
+| Context Window     | Limits how much input the LLM can process at once.   |
+| Reranking          | Reorders retrieved candidates by relevance.          |
+| Grounding          | Encourages answers to rely on retrieved information. |
+| Evaluation         | Measures retrieval quality and answer correctness.   |
+| Hybrid Search      | Combines keyword search and semantic search.         |
+
+RAG does not require a vector database in every implementation. Other retrieval approaches can also be used.
+
+## 12. Complete RAG Workflow
+
+```
+                INDEXING PHASE
+                --------------
+
+Documents
+    |
+    v
+Document Loader
+    |
+    v
+Document Objects
+(Content + Metadata)
+    |
+    v
+Text Splitter
+    |
+    v
+Chunks
+    |
+    v
+Embedding Model
+    |
+    v
+Vector Store
+(Store Embeddings and Associated Data)
+
+
+          QUESTION-ANSWERING PHASE
+          ------------------------
+
+User Question
+    |
+    v
+Question Embedding
+    |
+    v
+Retriever
+    |
+    v
+Relevant Chunks
+    |
+    v
+Prompt Augmentation
+(Context + Question)
+    |
+    v
+LLM
+    |
+    v
+Final Answer
+```
+
+## 13. Quick Revision
+
+- **RAG:** Retrieves external information and uses it to augment LLM responses.
+- **Document Loader:** Loads content from a source.
+- **Document Object:** Contains page content and metadata.
+- **Text Splitter:** Divides large documents into chunks.
+- **Chunk Overlap:** Repeats some text between neighbouring chunks.
+- **Embedding Model:** Converts text into numerical vectors.
+- **Vector Store:** Stores embeddings and supports similarity search.
+- **Semantic Search:** Finds information based on meaning.
+- **Retriever:** Returns relevant chunks for a question.
+- **Prompt Augmentation:** Combines retrieved context with the question.
+- **LLM:** Generates the final answer.
+- **Indexing:** Prepares documents for retrieval.
+- **Standard RAG:** Does not retrain the LLM when documents are added.
+
+**Remember the core idea:**
+
+RAG retrieves relevant information from external data, supplies it to an LLM as context, and uses the LLM to generate an answer.
+
+## Save it to your GitHub repository
+
+1. Create a file named `rag-notes.md`.
+2. Copy the notes above into that file.
+3. Commit and push it to your GitHub repository.
+4. If you are using GitHub Pages, link to the notes from your documentation homepage or navigation.
+
+For a basic GitHub Pages site, Markdown can be rendered by Jekyll. If you already use a Jekyll theme, its existing layout and navigation can be used to display the notes.
